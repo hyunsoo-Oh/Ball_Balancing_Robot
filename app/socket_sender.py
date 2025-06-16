@@ -14,7 +14,7 @@ def start_picam_stream(ip="10.10.10.93", port=8485):
     picam2.start()
     time.sleep(1)
 
-    print("🎥 Picamera2 초기화 완료")
+    print("Picamera2 초기화 완료")
 
     # 소켓 연결
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
