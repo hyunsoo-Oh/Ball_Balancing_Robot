@@ -4,7 +4,7 @@ import time
 from utils.buffer import frame_queue
 
 # === Picamera2 초기화 ===
-def picam2_init(width=640, height=480, fmt="RGB888"):
+def picam2_init(width=320, height=320, fmt="RGB888"):
     picam2 = Picamera2()
     picam2.preview_configuration.main.size = (width, height)
     picam2.preview_configuration.main.format = fmt

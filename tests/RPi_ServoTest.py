@@ -20,15 +20,17 @@ def angle_to_duty(angle):
 
 def servo_test():
 	try:
-		for angle in [0, 90, 180, 90]:
-			print(f"각도 : {angle}°")
-			for pwm in pwms:
-				pwm.ChangeDutyCycle(angle_to_duty(angle))
-			time.sleep(1)
+		pwms[0].ChangeDutyCycle(angle_to_duty(90))
+		time.sleep(1)
+		# for angle in [0, 90, 180, 90]:
+		# 	print(f"각도 : {angle}°")
+		# 	for pwm in pwms:
+		# 		pwm.ChangeDutyCycle(angle_to_duty(angle))
+		# 	time.sleep(1)
 
 	finally:
 		for pwm in pwms:
-			pwm.ChangeDutyCycle(0)
+			pwm.ChangeDutyCycle(angle_to_duty(90))
 			pwm.stop()
 		GPIO.cleanup()
 

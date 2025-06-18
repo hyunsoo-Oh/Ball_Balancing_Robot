@@ -17,6 +17,7 @@ if __name__ == "__main__":
     try:
         while True:
             tracking_task()
+            # tracking_task_yolo()
 
     except KeyboardInterrupt:
         print("프로그램 종료 요청")
