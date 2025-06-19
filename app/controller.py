@@ -20,6 +20,13 @@ for pwm in pwms:
 def angle_to_duty(angle):
     return 2.5 + (angle / 180.0) * 10
 
+# === 서보 초기화 (45도 기본 위치) ===
+def initialize_servos():
+    for i, pwm in enumerate(pwms):
+        pwm.ChangeDutyCycle(angle_to_duty(45))
+    time.sleep(1)  # 서보가 위치로 이동할 시간 제공
+    print("🔧 서보 초기화 완료 (45도)")
+
 # === 간단한 PID 클래스 ===
 class PID:
     def __init__(self, kp, ki, kd, target=0.0):
@@ -29,11 +36,16 @@ class PID:
         self.target     = target  # 목표 위치
         self.integral   = 0       # 누적 오차 (I 항)
         self.prev_error = 0       # 이전 오차 (D 항 계산용)
+        self.integral_limit = 50  # 적분 항 제한 (windup 방지)
 
     # 오차 계산 (현재 위치 - 목표 위치)
     def update(self, measurement):
         error = self.target - measurement
+
+        # 적분항 누적 (windup 방지)
         self.integral += error
+        self.integral = max(-self.integral_limit, min(self.integral_limit, self.integral))
+
         derivative = error - self.prev_error
 
         # PID 출력 계산
@@ -43,9 +55,12 @@ class PID:
         self.prev_error = error
         return output
 
-# PID 게인 설정 (조정 필요)
-pid_x = PID(kp=0.1, ki=0.0, kd=0.01, target=160)  # 예: 320x240 화면에서 중앙 160
-pid_y = PID(kp=0.1, ki=0.0, kd=0.01, target=120)
+# PID 게인 설정 (320px 기준으로 조정)
+# pid_x = PID(kp=0.5, ki=0.01, kd=0.05, target=160)  # 320px 폭에서 중앙 160
+# pid_y = PID(kp=0.5, ki=0.01, kd=0.05, target=120)  # 240px 높이에서 중앙 120
+
+pid_x = PID(kp=1.49, ki=0.07, kd=0.38, target=160)  # 320px 폭에서 중앙 160
+pid_y = PID(kp=1.49, ki=0.07, kd=0.38, target=120)  # 240px 높이에서 중앙 120
 
 # === 서보 방향 벡터 (120도 간격, 단위 벡터) ===
 servo_dirs = [
@@ -62,8 +77,12 @@ def apply_control(ctrl_x, ctrl_y):
     angles = []
     for i, vec in enumerate(servo_dirs):
         delta = vec[0] * roll + vec[1] * pitch
-        angle = 90 + delta                    # 기준 각도 90°에서 ± 제어량
-        angle = max(0, min(180, angle))       # 범위 제한
+
+        # 기본 45도에서 delta만큼 빼기
+        angle = 45 - delta
+
+        # 0도~45도 범위 제한
+        angle = max(0, min(45, angle))
         angles.append(angle)
         pwms[i].ChangeDutyCycle(angle_to_duty(angle))
 
@@ -82,11 +101,16 @@ def pid_task():
             control_x = pid_x.update(x)
             control_y = pid_y.update(y)
 
+            # 제어량 제한 (너무 급격한 움직임 방지)
+            control_x = max(-20, min(20, control_x))
+            control_y = max(-20, min(20, control_y))
+
             # 서보 제어
             apply_control(control_x, control_y)
 
     except KeyboardInterrupt:
         pass
+
     finally:
         for pwm in pwms:
             pwm.stop()

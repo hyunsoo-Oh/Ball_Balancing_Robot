@@ -1,10 +1,18 @@
 import cv2
 import numpy as np
-import time
+import time, os
+# import tensorflow as tf
 from utils.buffer import frame_queue, tracking_data_queue
 
+# # 올바른 절대 경로 설정
+# MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "yolo_model", "yolov5n_flex.tflite"))
+
+# if not os.path.exists(MODEL_PATH):
+#     raise FileNotFoundError(f"[ERROR] 모델 파일이 존재하지 않음: {MODEL_PATH}")
+
+# interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+
 # # === YOLOv5n TFLite 모델 로드 ===
-# interpreter = tf.lite.Interpreter(model_path="yolo_model/yolov5n_flex.tflite")
 # interpreter.allocate_tensors()
 # input_details = interpreter.get_input_details()
 # output_details = interpreter.get_output_details()
@@ -17,14 +25,28 @@ from utils.buffer import frame_queue, tracking_data_queue
 
 # # === YOLOv5 TFLite 공 검출 함수 ===
 # def detect_ball_yolo(frame):
-#     img = cv2.resize(frame, tuple(input_shape))
-#     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-#     input_data = np.expand_dims(img_rgb, axis=0).astype(np.float32) / 255.0
+#     # 1. 이미지 리사이징 (640x640)
+#     img = cv2.resize(frame, (640, 640))
 
+#     # 2. BGR → RGB 변환
+#     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+#     # 3. 정규화 (0~1 범위)
+#     img_normalized = img_rgb.astype(np.float32) / 255.0
+
+#     # 4. 차원 확장 및 전치: (H, W, C) → (1, C, H, W)
+#     input_data = np.expand_dims(img_normalized, axis=0)  # (1, H, W, C)
+#     input_data = np.transpose(input_data, (0, 3, 1, 2))  # (1, C, H, W)
+
+#     print("[DEBUG] Expected shape:", input_details[0]['shape'])
+#     print("[DEBUG] Actual input shape:", input_data.shape)
+
+#     # 5. 텐서 설정 및 추론
 #     interpreter.set_tensor(input_details[0]['index'], input_data)
 #     interpreter.invoke()
 #     output_data = interpreter.get_tensor(output_details[0]['index'])[0]
 
+#     # 6. 후처리 (원본 프레임 크기 기준으로 좌표 변환)
 #     h, w, _ = frame.shape
 #     boxes = []
 
@@ -33,10 +55,12 @@ from utils.buffer import frame_queue, tracking_data_queue
 #         if conf < 0.4:
 #             continue
 #         class_id = int(cls)
+#         if class_id >= len(CLASSES):
+#             continue
 #         if CLASSES[class_id] != "yellow_ball":
 #             continue
 
-#         # 좌표 원본 이미지 크기에 맞게 변환
+#         # 정규화된 좌표를 원본 이미지 크기로 변환
 #         x = int((x_center - width / 2) * w)
 #         y = int((y_center - height / 2) * h)
 #         x2 = int((x_center + width / 2) * w)
